@@ -1,0 +1,188 @@
+---
+title: Types of storm events with the most health and economic impacts in the last
+  20 years
+author: "Michael Celeste"
+date: "Saturday, January 22, 2015"
+output: html_document
+---
+
+This analysis document presents data from the National Weather Service listing storm events that have had the most impact to both population health and the economy in the last 20 years. The focus of this analysis will be to list the most impactful storm type events for population health and the most impactful storm events that have had the most economic consequences. Population health impact will be measured in terms of injuries and fatalities. Econonmic consequences will be measure in terms of property and crop damage. Only the last 20 years from 1991 to 2011 will be assessed due to the improvement and accuracty of measurement in this time period as oppossed to earlier years.
+
+## Data Processing
+
+The National Weather Service Storm Data was used for this analysis. The data is located at the following location: <https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2>. The data was downloaded and read to a data structure. 
+
+```{r, echo=TRUE, cache=TRUE}
+
+# read data file
+storm <- read.csv(bzfile("repdata_data_StormData.csv.bz2","r"))
+
+```
+
+The data was then processed to first analyze what storm events were the most impactful to the health of the population. This was done by first aggregating and summing up the injuries and fatalities in separate data sets. Then merging these datasets together to create a dataset of storm event types, year, sum of injuries, and sum of fatalities. The same was done for both property and crop damage.
+
+Storm events were grouped into broader categories in order to make the data and figures more interpretable.
+
+A table was then created for each storm type event listing the number of injuries and fatalities per year. A similar table was created listing the property and crop damage for each storm type event.
+
+```{r, echo=TRUE }
+
+# load libraries
+library(plyr)
+library(lubridate)
+library(ggplot2)
+library(reshape2)
+library(lattice)
+
+##EVENTS THAT HAVE CAUSED HARM
+bad.events.damage <- unique(storm$EVTYPE[storm$PROPDMG>0|storm$CROPDMG>0|storm$INJURIES>0|storm$FATALITIES>0] )
+
+groups <- make.groups  (        wind = c(grep("wind", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                         grep("gust", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                         grep("turbulence", bad.events.damage, value=TRUE, ignore.case=TRUE)
+                                         ),
+                                tornado = c(grep("tornado", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                            grep("spout", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                            grep("funnel", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                            grep("torndao", bad.events.damage, value=TRUE, ignore.case=TRUE)
+                                            ),
+                                storm = c(grep("storm", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                          grep("tstmw", bad.events.damage, value=TRUE, ignore.case=TRUE)
+                                          ),
+                                fog = grep("fog", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                cold = c(grep("cold", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                         grep("hypotherm", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                         grep("low temperature", bad.events.damage, value=TRUE, ignore.case=TRUE)
+                                         ),
+                                ice = c(grep("ice", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                        grep("freez", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                        grep("glaze", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                        grep("icy", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                        grep("frost", bad.events.damage, value=TRUE, ignore.case=TRUE),                                        
+                                        grep("sleet", bad.events.damage, value=TRUE, ignore.case=TRUE)                                
+                                        ),
+                                snow = c(grep("snow", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                         grep("winter weather", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                         grep("wintry", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                         grep("blizzard", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                         grep("burst", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                         grep("heavy mix", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                         grep("mixed precip", bad.events.damage, value=TRUE, ignore.case=TRUE)
+                                        ),
+                                hail = grep("hail", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                rain = c(grep("rain", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                         grep("heavy precipitat", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                         grep(" wet", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                         grep("heavy shower", bad.events.damage, value=TRUE, ignore.case=TRUE)
+                                         ),
+                                erosion = grep("erosion", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                lightning = c(grep("lightning", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                              grep("lighting", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                              grep("ligntning", bad.events.damage, value=TRUE, ignore.case=TRUE)
+                                              ),
+                                hurricane = grep("hurricane", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                tsunami = grep("tsunami", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                flood = c(grep("flood", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                          grep("drowning", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                          grep("stream fld", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                          grep("high water", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                 grep("rapidly rising water", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                          grep("dam break", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                          grep("stream", bad.events.damage, value=TRUE, ignore.case=TRUE)
+                                          ),
+                                heat = c(grep("warm", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                         grep("heat", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                         grep("hypertherm", bad.events.damage, value=TRUE, ignore.case=TRUE)
+                                         ),
+                                avalanche = grep("avalan", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                dust = grep("dust", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                sea = c(grep("seas", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                        grep("marine", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                        grep("surf", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                        grep("rip current", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                        grep("wave", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                        grep("swells", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                        grep("coastal surge", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                        grep("seiche", bad.events.damage, value=TRUE, ignore.case=TRUE),                                        
+                                        grep("tide", bad.events.damage, value=TRUE, ignore.case=TRUE)
+                                        ),
+                                fire = grep("fire", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                drought = grep("drought", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                slides = grep("slide", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                typhoon = grep("typhoon", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                other = c(grep("Other", bad.events.damage, value=TRUE, ignore.case=TRUE), 
+                                          grep("HIGH", bad.events.damage, value=TRUE, fixed=TRUE),
+                                          grep("URBAN AND SMALL", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                          grep("URBAN SMALL", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                          grep("apache", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                          grep("volcanic", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                          grep("depression", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                          grep("smoke", bad.events.damage, value=TRUE, ignore.case=TRUE),
+                                          grep("landslump", bad.events.damage, value=TRUE, ignore.case=TRUE)
+                                )
+                        )
+
+## Modify storm dataframe
+storm$year <- year( mdy_hms(storm$BGN_DATE) )
+
+## Plot of storm events tracked per year ##TODO ADD THIS PLOT
+###plot(table(storm$year))
+
+s <- storm
+## Create a merged dataset with the group column 
+s <- merge(s, groups, by.x="EVTYPE", by.y="data", all=FALSE)
+
+
+## Convert Property and Crop units to K
+s$propdmgk <- 0
+s$propdmgk [s$PROPDMGEXP == "M"] <- s$PROPDMG [ s$PROPDMGEXP == "M" ] * 1000 
+s$propdmgk [s$PROPDMGEXP == "B"] <- s$PROPDMG [ s$PROPDMGEXP == "B" ] * 1000000 
+s$propdmgk [s$PROPDMGEXP == "K"] <- s$PROPDMG [s$PROPDMGEXP == "K"]
+
+s$cropdmgk <- 0
+s$cropdmgk [s$CROPDMGEXP == "M"] <- s$CROPDMG [ s$CROPDMGEXP == "M" ] * 1000 
+s$cropdmgk [s$CROPDMGEXP == "B"] <- s$CROPDMG [ s$CROPDMGEXP == "B" ] * 1000000 
+s$cropdmgk [s$CROPDMGEXP == "K"] <- s$CROPDMG [ s$CROPDMGEXP == "K"]
+
+
+
+
+```
+
+NOTE: For the purposes of this analysis, I have assumed that the PROPDMGEXP and CROPDMGEXP are monetary units in the data. I have converted the values of M (Millions), B (Billions), to K (Thousands).
+
+## Results
+
+The following results display tables for both the top 10 health and economic impacts by grouped events. The columns calculate the total numbers for health and economic ($K) impacts. The health impacts are order by average per year fatalities and the economic impacts by property damage per year. In the figures each group event is displayed separately and shows the impacs for each. The first figure focuses on the health impacts and the second figure the economic impacts. 
+
+
+```{r, results='asis', fig.height=6, fig.width=8 }
+
+h.table <- ddply(s, "which", summarise, injuries = sum(INJURIES), avg.injuries = round(sum(INJURIES)/(max(year)-min(year)),0), fatalities = sum(FATALITIES), avg.fatalities = round(sum(FATALITIES)/(max(year)-min(year)),0) )
+
+knitr::kable( head( h.table [ order( h.table$avg.fatalities, decreasing=TRUE ) , ] , 10) , row.names=FALSE )
+
+p.table <- ddply(s, "which", summarise, property.damage = sprintf("$ %.f", sum(propdmgk) ), avg.property.damage = sprintf("$ %.f", round(sum(propdmgk)/(max(year)-min(year)),0) ), crop.damage = sprintf("$ %.f", sum(cropdmgk), avg.crop.damage = round(sum(cropdmgk)/(max(year)-min(year)),0) ) )
+
+knitr::kable( head( p.table[order(p.table$avg.property.damage, decreasing=TRUE),] , 10 ) , row.names = FALSE ) 
+
+s.fatalities <- ddply(s, c("which","year"), summarise, fatalities = round(sum(FATALITIES),0))
+s.injuries <- ddply(s, c("which","year"), summarise, injuries = round(sum(INJURIES),0))
+
+s.health <- merge(s.fatalities, s.injuries, all = TRUE)
+
+s.health <- melt( s.health, id.vars=c("which","year"), variable.name="issue", value.name="count" )
+
+ggplot( s.health [s.health$year > "1990", ], aes( x = year, y = count, colour=issue)) + geom_line() + facet_wrap( ~ which, scales="free_y" , ncol = 3)
+
+s.propdmg <- ddply(s, c("which","year"), summarise, property.damage = round(sum(PROPDMG),0))
+s.cropdmg <- ddply(s, c("which","year"), summarise, crop.damage = round(sum(CROPDMG),0))
+
+s.damage <- merge(s.propdmg, s.cropdmg, all = TRUE)
+
+s.damage <- melt( s.damage, id.vars=c("which","year"), variable.name="issue", value.name="count" )
+
+ggplot( s.damage [s.damage$year > "1990", ], aes( x = year, y = count, colour=issue)) + geom_line() + facet_wrap( ~ which, scales="free_y" , ncol = 3)
+
+```
+

@@ -1,0 +1,40 @@
+library(shiny)
+###library(leaflet)
+
+# Define UI for application that draws a histogram
+shinyUI(
+  
+  navbarPage("Tornado and Hurricane Viewer", id="nav",
+             
+             tabPanel("Annual Avg Temperature",                      
+                      htmlOutput("tornado_plot1")
+                      ),
+             div(class="outer",
+                 
+                 tags$head(
+                
+                   includeCSS("styles.css")
+                   
+                 ),
+                
+          fixedPanel(id ="year_display", class="modal", cursor=NULL, height=50, width=100, top=45, left=300,
+                     h1( textOutput("DisplayYear") ) ),
+             
+             absolutePanel(id = "controls", class = "modal", fixed = FALSE, draggable = TRUE,
+                           top = 60, left = "auto", right = 20, bottom = "auto",
+                           width = 330, height = "auto",
+                           
+                           h2("Climate Monitor"),
+                           
+                           sliderInput("Year", "Year Monitored", 
+                                       min=1950, max=2011, value=1950, step=1,
+                                       format="###0",animate=TRUE) 
+             ),
+             ##tabPanel("Annual Temperature Anomaly"),
+             
+             tabPanel("Annual Avg Percipitation")
+             
+            ##tabPanel("Annual Precipitation Anomaly")
+             
+          )             
+))
